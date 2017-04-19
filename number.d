@@ -194,7 +194,8 @@ Ldone:
         isunsigned = true;
     result = n;
     if (overflow && isinteger)
-        err_fatal("integer overflow");
+        result = -23;
+        //err_fatal("integer overflow");
     return r;
 }
 

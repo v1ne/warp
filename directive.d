@@ -1021,7 +1021,7 @@ void includeFile(R)(R ctx, IncludeType includeType, bool sysstring,
     }
 
     //writefln("found '%s', pathIndex = %s", sf.filename, pathIndex);
-    writeStatus(sf.cachedRead ? 'C' : ' ');
+    writeStatus(sf.cachedRead ? 'C' : 'c');
     ctx.pushFile(sf, system, pathIndex, includeTrace);
 }
 
