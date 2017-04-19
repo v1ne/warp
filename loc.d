@@ -40,7 +40,15 @@ struct Loc
      */
     void linemarker(R)(R r)
     {
-        r.formattedWrite("# %d \"%s\"", lineNumber - 1, fileName);
+        version (Windows)
+        {
+          r.formattedWrite("#line %d \"%s\"", lineNumber - 1, fileName);
+        }
+        else version(Posix)
+        {
+          r.formattedWrite("# %d \"%s\"", lineNumber - 1, fileName);
+        }
+
         if (system)
         {
             r.put(' ');

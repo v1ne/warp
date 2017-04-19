@@ -19,9 +19,12 @@ import std.algorithm, std.datetime, std.path, std.process, std.stdio,
   std.string;
 
 // Uncomment this line to debug this script
-//debug = warpdrive;
+debug = warpdrive;
 
 // Import the appropriate built-in #define menagerie
+version (msvc) {
+  version = msvc;
+}
 version (gcc4_7_1) {
   version = gnu;
   import defines_gcc4_7_1, defines_gxx4_7_1;
@@ -83,11 +86,39 @@ int main(string[] args) {
   // The warp binary is assumed to be in the same directory as
   // warpdrive UNLESS it is actually an absolute path.
   options ~= warp.startsWith('/') ? warp : buildPath(args[0].dirName, warp);
-  options ~= defaultOptions;
-  options ~= extras;
+  //options ~= defaultOptions;
+  //options ~= extras;
 
   string toCompile;
   bool dashOhPassed = false;
+
+  foreach (const char[] msEnvVar; ["MSC_IDE_FLAGS", "MSC_CMD_FLAGS"]) {
+    auto msparams = environment.get(msEnvVar);
+    if(msparams !is null) {
+      while(msparams != "") {
+        if(msparams.startsWith('"')) {
+          auto secondQuoteAt = indexOf(msparams[1 .. $], '"');
+          if(secondQuoteAt == -1 || msparams[secondQuoteAt + 2] != ' ') {
+            stderr.writeln("Quote mismatch: " ~ msparams);
+            return 1;
+          }
+          stderr.writeln("Pushing \"" ~ msparams[0 .. secondQuoteAt + 2] ~ "\"");
+          args ~= msparams[0 .. secondQuoteAt + 2];
+          msparams = msparams[secondQuoteAt + 3 .. $];
+        } else {
+          auto spaceAt = indexOf(msparams, ' ');
+          if(spaceAt == -1) {
+            args ~= msparams;
+            msparams = "";
+            break;
+          }
+          stderr.writeln("Pushing \"" ~ msparams[0 .. spaceAt] ~ "\"");
+          args ~= msparams[0 .. spaceAt];
+          msparams = msparams[spaceAt + 1 .. $];
+        }
+      }
+    }
+  }
 
   for (size_t i = 1; i < args.length; ++i) {
     auto arg = args[i];
@@ -118,10 +149,7 @@ int main(string[] args) {
         options ~= "-D__USE_EXTERN_INLINES=1";
         continue;
       }
-      if (!arg.startsWith("-isystem", "-I", "-d", "-MF", "-MQ", "-D",
-              "-MD", "-MMD")) {
-        continue;
-      }
+
       // Sometimes there may be a space between -I and the path, or
       // between "-D" and the macro defined. Merge them.
       if (arg == "-I" || arg == "-D") {
@@ -130,30 +158,63 @@ int main(string[] args) {
         options ~= args[++i];
         continue;
       }
+
+      if (arg == "-MF" || arg == "-MD" || arg == "-MMD") {
+        // This is a weird one: optional parameter after -MMD
+        if (i + 1 < args.length && args[i + 1].startsWith('-')) {
+          // Optional argument
+          continue;
+        }
+        options ~= "--dep=" ~ args[++i];
+        continue;
+      }
+      if (arg == "-MQ") {
+        // just skip the object file
+        ++i;
+        continue;
+      }
+      if (arg == "-isystem") {
+        arg = "--isystem=" ~ args[++i];
+      }
+      if (arg == "-sqm") {
+        // just skip the MSVC++ SQM file (what is this?)
+        ++i;
+        continue;
+      }
+      if (arg == "-pc" || arg == "-il") {
+        // skip MSVC++ ??? separator, intermediate directory
+        ++i;
+        continue;
+      }
+      if (arg == "-wd" || arg == "-W") {
+        // skip MSVC++ warnings settings
+        ++i;
+        continue;
+      }
+      if (arg == "-FI" || arg == "-include") {
+        options ~= "--prepend=";
+        options ~= args[++i];
+        continue;
+      }
+      if (arg == "-f") {
+        assert(!toCompile, toCompile);
+        toCompile = arg;
+        continue;
+      }
+
+      // Handle -I<no space>foo as special cases:
+      if(arg.startsWith("-I") || arg.startsWith("-D") || arg.startsWith("-o"))
+      {
+        options ~= arg;
+        continue;
+      }
+
+      // skip all unknown options
     } else {
       // This must be the file to compile
       assert(!toCompile, toCompile);
       toCompile = arg;
-      continue;
     }
-    if (arg == "-MF" || arg == "-MD" || arg == "-MMD") {
-      // This is a weird one: optional parameter after -MMD
-      if (i + 1 < args.length && args[i + 1].startsWith('-')) {
-        // Optional argument
-        continue;
-      }
-      options ~= "--dep=" ~ args[++i];
-      continue;
-    }
-    if (arg == "-MQ") {
-      // just skip the object file
-      ++i;
-      continue;
-    }
-    if (arg == "-isystem") {
-      arg = "--isystem=" ~ args[++i];
-    }
-    options ~= arg;
   }
 
   // If no -o default to output to stdout
@@ -162,9 +223,9 @@ int main(string[] args) {
   }
 
   if (toCompile.endsWith(".c")) {
-    options ~= defines;
+    //options ~= defines;
   } else {
-    options ~= xxdefines;
+    //options ~= xxdefines;
   }
 
   // Add the file to compile at the very end for easy spotting by humans

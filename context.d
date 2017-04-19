@@ -263,6 +263,16 @@ struct Context(R)
     void preprocess()
     {
         auto lexer = createLexer(&this);
+/*
+        const auto system = currentSourceFile().loc.system;
+        foreach (const string file; params.prependFilenames)
+        {
+          auto includeTrace = new LocList();
+          lexer.src.includeFile(IncludeType._include, false, file, "prependIncludes",
+                                0, system, includeTrace);
+        }
+*/
+
         while (1)
         {
             // Either at start of a new line, or the end of the file

@@ -7,6 +7,7 @@
  */
 
 import std.array;
+import std.file;
 import std.format;
 import std.stdio;
 import core.stdc.stdlib;
@@ -58,7 +59,7 @@ else
                 if (context.doDeps)
                     context.deps ~= srcFilename;
 
-                scope(failure) if (!params.stdout) std.file.remove(outFilename);
+                scope(failure) if (!params.stdout) remove(outFilename);
 
                 auto fout = params.stdout ? stdout : File(outFilename, "wb");
                 if (!isatty(fout.fileno))
