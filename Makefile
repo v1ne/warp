@@ -2,19 +2,27 @@
 ifeq (,$(DC))
 	DC:=$(shell which gdc 2>/dev/null)
 ifeq (,$(DC))
+	DC:=$(shell which ldc2 2>/dev/null)
+ifeq (,$(DC))
 	DC:=dmd
+endif
 endif
 endif
 
 ifeq (gdc,$(notdir $(DC)))
-	DFLAGS=-c -O4 -frelease -fno-bounds-check -fbuiltin
+	DFLAGS=-O4 -frelease -fno-bounds-check -fbuiltin
 	OFSYNTAX=-o
 else
+ifeq (ldc2,$(notdir $(DC)))
+	DFLAGS=-O4 -boundscheck=off -release
+	OFSYNTAX=-of=
+else
 ifeq (dmd,$(notdir $(DC)))
-	DFLAGS=-c -O -inline -release
+	DFLAGS=-O -inline -release
 	OFSYNTAX=-of
 else
     $(error Unsupported compiler: $(DC))
+endif
 endif
 endif
 
