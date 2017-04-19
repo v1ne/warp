@@ -29,6 +29,7 @@ struct Params
     string[] defines;
     string[] includes;
     string[] sysincludes;
+    string[] prependFilenames;
     bool verbose;
     bool stdout;
 }
@@ -53,14 +54,15 @@ Params parseCommandLine(string[] args)
 Copyright (c) 2013 by Digital Mars
 http://boost.org/LICENSE_1_0.txt
 Options:
-  filename...       source file name(s)
-  -D macro[=value]  define macro
-  --dep filename    generate dependencies to output file
-  -I path           path to #include files
-  --isystem path    path to system #include files
-  -o filename       preprocessed output file
-  --stdout          output to stdout
-  -v                verbose
+  filename...        source file name(s)
+  -D macro[=value]   define macro
+  --dep filename     generate dependencies to output file
+  --prepend filename forcefully include file at the start
+  -I path            path to #include files
+  --isystem path     path to system #include files
+  -o filename        preprocessed output file
+  --stdout           output to stdout
+  -v                 verbose
 ");
         exit(EXIT_SUCCESS);
     }
@@ -71,6 +73,7 @@ Options:
         std.getopt.config.passThrough,
         std.getopt.config.caseSensitive,
         "include|I",    &p.includes,
+        "prepend",      &p.prependFilenames,
         "define|D",     &p.defines,
         "isystem",      &p.sysincludes,
         "dep",          &p.depFilename,
@@ -147,6 +150,8 @@ unittest
         "-I", "path2",
         "--isystem", "sys1",
         "--isystem", "sys2",
+        "--prepend", "pre1",
+        "--prepend", "pre2",
         "-o", "out.i"]);
 
         assert(p.sourceFilenames == ["foo.c"]);
@@ -154,6 +159,7 @@ unittest
         assert(p.depFilename == "out.dep");
         assert(p.includes == ["path1", "path2"]);
         assert(p.sysincludes == ["sys1", "sys2"]);
+        assert(p.prependFilenames == ["pre1", "pre2"]);
         assert(p.outFilenames == ["out.i"]);
 }
 

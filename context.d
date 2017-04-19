@@ -204,6 +204,18 @@ struct Context(R)
         // Initialize source text
         pushFile(sf, Sys.none, -1, null);
 
+        // Write prepended includes first
+        foreach (const string s; params.prependFilenames)
+        {
+          int pathIndex;
+          Sys system;
+          auto prepSf = searchForFile(false, false, system, s, pathIndex, sf.filename);
+          if (!prepSf)
+            err_fatal("cannot find prepended include file %s", s);
+          prepSf.once = true;
+          pushFile(prepSf, system, pathIndex, null);
+        }
+
         version (unittest)
         {
             // Don't make unittest results unnecessarily complicated
